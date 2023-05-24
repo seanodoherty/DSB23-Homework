@@ -35,6 +35,9 @@ library(scales)
 library(sf)
 library(readxl)
 library(stringr)
+
+options(dplyr.summarise.inform = FALSE)
+options(dbplyr.summarise.inform = FALSE)
 ```
 
 # Money in UK politics
@@ -186,12 +189,14 @@ parties <- dplyr::tbl(sky_westminster, "parties")
 
 # year / party name / donations / prop of year
 
+# count(payments, category_name)
+
 # store base data to table
-year_party_value <-
+year_party_donations <-
   
-  # join payments to member / party
+  # join donations from payments table to member / party
   left_join(
-    x = payments
+    x = payments # filter(payments, category_name == "Cash donations")
     ,y = 
       left_join(
         x = members
@@ -208,38 +213,41 @@ year_party_value <-
       ) %>% 
     
     # Extract year from date field
-    mutate(year = str_sub(date, -5, -1)) %>% 
+    mutate(year = str_sub(date, -4, -1)) %>% 
+  
+    # filter to 2020-2022
+    filter(year %in% c("2020", "2021", "2022")) %>% 
     
     # Group by year and party_name and sum value
     group_by(year, party_name) %>%
-    summarise(total_year_donations = sum(value))
+    summarise(donations = sum(value))
 
 # store subotals to table
-year_value <-
+year_total_donations <-
   
   # get yearly sub-totals
-  year_party_value %>% 
+  year_party_donations %>% 
     group_by(year) %>% 
-    summarise(total_value_year = sum(value))
+    summarise(year_total_donations = sum(donations))
 
 # store output to table
 year_party_value_prop <-
   
   # left join base data to yearly totals  
   left_join(
-    x = year_party_value
-    ,y = year_value
+    x = year_party_donations
+    ,y = year_total_donations
     ,by = "year"
   ) %>% 
   
     # calculate prop
-    mutate(prop = value / total_value_year) %>% 
+    mutate(prop = donations / year_total_donations) %>% 
     
     # use select to format output
     select(
       year
       ,name = party_name
-      ,total_year_donations = value
+      ,total_year_donations = donations
       ,prop
     )
 
@@ -251,6 +259,52 @@ year_party_value_prop
 
 ```{r echo=FALSE, out.width="80%"}
 knitr::include_graphics(here::here("images", "total_donations_graph.png"), error = FALSE)
+
+options(dplyr.summarise.inform = FALSE)
+
+# create table of top 10 parties by donation
+party_value_top10 <-
+  year_party_value_prop %>% 
+  
+    # filter out independent
+    filter(name != "Independent") %>% 
+    
+    # group by party
+    group_by(name) %>% 
+    
+    # sum up donations
+    summarise(total_donations = sum(total_year_donations)) %>%
+    
+    # keep only top 10
+    slice_max(n = 10, total_donations)
+
+inner_join(
+  x = year_party_value_prop
+  ,y = party_value_top10
+  ,by = "name"
+) %>%
+  ggplot() +
+  aes(
+    x = factor(year)
+    ,y = total_year_donations
+    ,fill = fct_rev(fct_reorder(name, total_year_donations))
+  ) +
+  geom_col(
+    position = "dodge"
+  ) +
+  theme_light(
+    base_size = 8
+  ) +
+  labs(
+    x = NULL
+    ,y = NULL
+    ,title = "Conservatives have captured the majority of political donations"
+    ,subtitle = "Donations to political parties, 2020-2022"
+    ,fill = "Party"
+  ) +
+  scale_y_continuous(
+    labels = comma
+  )
 ```
 
 This uses the default ggplot colour pallete, as I dont want you to worry about using the [official colours for each party](https://en.wikipedia.org/wiki/Wikipedia:Index_of_United_Kingdom_political_parties_meta_attributes). However, I would like you to ensure the parties are sorted according to total donations and not alphabetically. You may even want to remove some of the smaller parties that hardly register on the graph. Would facetting help you?
