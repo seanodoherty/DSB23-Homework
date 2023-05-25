@@ -374,7 +374,7 @@ cdc_basedata_001 <-
     # get count
     summarise(
       case_count = n()
-    )
+    ) %>% 
     
   # collect data from connection
   collect()
@@ -398,7 +398,7 @@ cdc_basedata_001 %>%
     ,icu_yn
   ) %>% 
   summarise(
-    cfr_pct = sum(count[death_yn == "Yes"]) / sum(count)
+    cfr_pct = sum(case_count[death_yn == "Yes"]) / sum(case_count)
   ) %>%
   
   # Change yn
@@ -429,7 +429,7 @@ cdc_basedata_001 %>%
   
   # apply theme and adjust font size
   theme_light(
-    base_size = 8
+    base_size = 6
   ) +
   
   # set labels
@@ -439,14 +439,19 @@ cdc_basedata_001 %>%
     ,title = "Covid CFR % by age group, sex and ICU Admission"
   ) +
   geom_text(
-    aes(label = percent(cfr_pct, accuracy = 1))
+    aes(
+      label = round(100 * cfr_pct, 0)
+      ,hjust = 1.2
+    )
   ) +
   
   # apply facet grid
   facet_grid(
     rows = vars(icu_yn)
     ,cols = vars(sex)
-  )
+  ) +
+  
+   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
   
   
 ```
