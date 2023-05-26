@@ -1,8 +1,12 @@
 ---
-title: "Homework 3: Databases, web scraping, and a basic Shiny app"
+title: 'Homework 3: Databases, web scraping, and a basic Shiny app'
 author: "Seán O'Doherty"
 date: "`r Sys.Date()`"
 output:
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
   html_document:
     theme: flatly
     highlight: zenburn
@@ -10,8 +14,6 @@ output:
     toc: yes
     toc_float: yes
     code_folding: show
-  pdf_document:
-    toc: yes
 ---
 
 ```{r}
@@ -558,7 +560,7 @@ cdc_basedata_002 %>%
       label = cfr_pct
       ,hjust = -0.4
     )
-    ,size = 2.5
+    ,size = 2
   ) +
   
   # apply facet grid
@@ -607,24 +609,219 @@ cdc_basedata_003 <-
     # identify and group by relevant cols
     group_by(
       case_month
-      ,state_fips_code
+      ,county_fips_code
+      ,death_yn
     ) %>% 
     
-    # get case and death count
+    # get case count
     summarise(
-      death_count = sum(death_yn == "Yes", na.rm = TRUE)
-      ,case_count = n()
-      ,cfr_pct = round(100 * death_count / case_count, 0)
+      case_count = n()
     ) %>% 
     
   # collect data from connection
   collect()
 
-cdc_basedata_003
+# overwrite
+ cdc_basedata_003 <-
+  
+  # join to urban_rural
+  inner_join(
+    x = cdc_basedata_003
+    ,y = select(urban_rural, fips_code, x2013_code)
+    ,by = c("county_fips_code" = "fips_code")
+  )
+
+cdc_basedata_003 %>%
+
+  # Categorise
+  mutate(
+    category = case_when(
+      x2013_code == 1 ~ "1. Large central metro"
+      ,x2013_code == 2 ~ "2. large fringe metro"
+      ,x2013_code == 3 ~ "3. Medium metro"
+      ,x2013_code == 4 ~ "4. Small metropolitan"
+      ,x2013_code == 5 ~ "5. Micropolitan"
+      ,x2013_code == 6 ~ "6. Noncore"
+    )
+  ) %>% 
+
+  # group by non death factors and calculate cfs
+  group_by(
+    case_month
+    ,category
+  ) %>%
+  summarise(
+    death_count = sum(case_count[death_yn == "Yes"], na.rm = TRUE)
+    ,case_count = sum(case_count)
+    ,cfr_pct = round(100 * death_count / case_count, 1)
+  ) %>%
+
+  # add plot
+  ggplot() +
+
+  # add aesthetics
+  aes(
+    y = cfr_pct / 100
+    ,x = case_month
+    ,color = category
+    ,group = category
+  ) +
+
+  # add line
+  geom_line(linewidth = 0.2) +
+
+  # apply theme and adjust font size
+  theme_light(
+    base_size = 6
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90)
+    ,plot.background = element_blank()
+    ,panel.grid.major = element_blank()
+    ,panel.grid.minor = element_blank()
+    ,panel.border = element_blank()
+  ) +
+
+  # set labels
+  labs(
+    x = NULL
+    ,y = NULL
+    ,title = "Covid CFR % by county population"
+  ) +
+  geom_text(
+    data = . %>% filter(cfr_pct != 0)
+    ,aes(
+      label = cfr_pct
+      ,hjust = -0.4
+      ,vjust = -0.2
+    )
+    ,size = 2
+  ) +
+  guides(
+    color = FALSE
+  ) +
+
+  # apply facet wrap
+  facet_wrap(
+    ~ category
+    ,nrow = 3
+    ,scales = "free"
+  ) +
+
+  # alter axis labels
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  )
 ```
 
 ```{r echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FALSE)
+
+
+# store results to local tibble
+cdc_basedata_004 <-
+  
+  cdc_data %>%
+    
+    # filter out 2020-01
+    filter(
+      case_month != "2020-01"
+    ) %>% 
+    
+    # identify and group by relevant cols
+    group_by(
+      case_month
+      ,county_fips_code
+      ,death_yn
+    ) %>% 
+    
+    # get case count
+    summarise(
+      case_count = n()
+    ) %>% 
+    
+  # collect data from connection
+  collect()
+
+# overwrite
+ cdc_basedata_004 <-
+  
+  # join to urban_rural
+  inner_join(
+    x = cdc_basedata_004
+    ,y = select(urban_rural, fips_code, x2013_code)
+    ,by = c("county_fips_code" = "fips_code")
+  )
+
+cdc_basedata_004 %>%
+
+  # Categorise
+  mutate(
+    category = case_when(
+      x2013_code %in% c(1, 2, 3, 4) ~ "Urban"
+      ,x2013_code %in% c(5, 6) ~ "Rural"
+    )
+  ) %>%
+
+  # group by non death factors and calculate cfs
+  group_by(
+    case_month
+    ,category
+  ) %>%
+  summarise(
+    death_count = sum(case_count[death_yn == "Yes"], na.rm = TRUE)
+    ,case_count = sum(case_count)
+    ,cfr_pct = round(100 * death_count / case_count, 1)
+  ) %>%
+
+  # add plot
+  ggplot() +
+
+  # add aesthetics
+  aes(
+    y = cfr_pct / 100
+    ,x = case_month
+    ,color = category
+    ,group = category
+  ) +
+
+  # add line
+  geom_line(linewidth = 0.2) +
+
+  # apply theme and adjust font size
+  theme_light(
+    base_size = 6
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90)
+    ,plot.background = element_blank()
+    ,panel.grid.major = element_blank()
+    ,panel.grid.minor = element_blank()
+    ,panel.border = element_blank()
+  ) +
+
+  # set labels
+  labs(
+    x = NULL
+    ,y = NULL
+    ,title = "Covid CFR % by Urban vs Rural"
+    ,color = "Counties"
+  ) +
+  geom_text(
+    data = . %>% filter(cfr_pct != 0)
+    ,aes(
+      label = cfr_pct
+      ,hjust = -0.4
+      ,vjust = -0.2
+    )
+    ,size = 2
+    ,color = "black"
+  ) +
+
+  # alter axis labels
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  )
 ```
 
 # Money in US politics
