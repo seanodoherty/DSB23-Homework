@@ -189,7 +189,7 @@ left_join(
 
 I would like you to write code that generates the following table.
 
-```{r echo=FALSE, out.width="80%"}
+```{r}
 knitr::include_graphics(here::here("images", "total_donations_table.png"), error = FALSE)
 
 parties <- dplyr::tbl(sky_westminster, "parties")
@@ -264,7 +264,7 @@ year_party_value_prop
 
 ... and then, based on this data, plot the following graph.
 
-```{r echo=FALSE, out.width="80%"}
+```{r}
 knitr::include_graphics(here::here("images", "total_donations_graph.png"), error = FALSE)
 
 options(dplyr.summarise.inform = FALSE)
@@ -362,7 +362,7 @@ glimpse(cdc_data)
 
 Can you query the database and replicate the following plot?
 
-```{r echo=FALSE, out.width="100%"}
+```{r}
 knitr::include_graphics(here::here("images", "covid-CFR-ICU.png"), error = FALSE)
 
 # store results to local tibble
@@ -467,7 +467,7 @@ cdc_basedata_001 %>%
 
 The previous plot is an aggregate plot for all three years of data. What if we wanted to plot Case Fatality Ratio (CFR) over time? Write code that collects the relevant data from the database and plots the following
 
-```{r echo=FALSE, out.width="100%"}
+```{r}
 knitr::include_graphics(here::here("images", "cfr-icu-overtime.png"), error = FALSE)
 
 # store results to local tibble
@@ -598,7 +598,7 @@ Category name
 
 Can you query the database, extract the relevant information, and reproduce the following two graphs that look at the Case Fatality ratio (CFR) in different counties, according to their population?
 
-```{r echo=FALSE, out.width="100%"}
+```{r}
 knitr::include_graphics(here::here("images", "cfr-county-population.png"), error = FALSE)
 
 # store results to local tibble
@@ -714,7 +714,7 @@ cdc_basedata_003 %>%
   )
 ```
 
-```{r echo=FALSE, out.width="100%"}
+```{r}
 knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FALSE)
 
 
