@@ -843,16 +843,41 @@ paths_allowed("https://www.opensecrets.org")
 base_url <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2022"
 
 contributions_tables <- base_url %>%
-  read_html() 
+  read_html()
 
 ```
 
 -   First, make sure you can scrape the data for 2022. Use janitor::clean_names() to rename variables scraped using `snake_case` naming.
 
--   Clean the data:
+    ```{r}
 
-    -   Write a function that converts contribution amounts in `total`, `dems`, and `repubs` from character strings to numeric values.
-    -   Separate the `country_of_origin_parent_company` into two such that country and parent company appear in different columns for country-level analysis.
+    library(janitor)
+
+    scrape_contributions_table <- function(html){
+      
+      tables <-
+        html %>% 
+          html_nodes(css = "table") %>% 
+          html_table()
+      
+      table <-
+        tables[[1]] %>% 
+        clean_names()
+      
+      table
+
+    }
+
+    contributions <-
+      scrape_contributions_table(contributions_tables)
+
+    contributions
+    ```
+
+Clean the data:
+
+-   Write a function that converts contribution amounts in `total`, `dems`, and `repubs` from character strings to numeric values.
+-   Separate the `country_of_origin_parent_company` into two such that country and parent company appear in different columns for country-level analysis.
 
 ```{r, eval=FALSE}
 # write a function to parse_currency
@@ -894,6 +919,38 @@ contributions <- contributions %>%
 -   Map the `scrape_pac()` function over `urls` in a way that will result in a data frame called `contributions_all`.
 
 -   Write the data frame to a csv file called `contributions-all.csv` in the `data` folder.
+
+```{r}
+
+scrape_pac <- function(base_url){
+ 
+  contributions_tables <-
+    base_url %>%
+    read_html()
+  
+  contributions <-
+    scrape_contributions_table(contributions_tables)
+
+  contributions <-
+    contributions %>%
+      separate(country_of_origin_parent_company,
+               into = c("country", "parent"),
+               sep = "/",
+               extra = "merge") %>%
+      mutate(
+        total = parse_currency(total)
+        ,dems = parse_currency(dems)
+        ,repubs = parse_currency(repubs)
+        ,year = str_sub(base_url, -4, -1)
+  )
+  
+  contributions
+}
+
+scrape_pac("https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2020")
+
+
+```
 
 # Scraping consulting jobs
 
