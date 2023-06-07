@@ -1,8 +1,12 @@
 ---
-title: "Homework 4: Machine Learning"
+title: 'Homework 4: Machine Learning'
 author: "Your name goes here"
 date: "`r Sys.Date()`"
 output:
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
   html_document:
     theme: flatly
     highlight: zenburn
@@ -10,8 +14,6 @@ output:
     toc: yes
     toc_float: yes
     code_folding: show
-  pdf_document:
-    toc: yes
 ---
 
 ```{r}
@@ -761,16 +763,16 @@ model_comp %>%
 # - `last_fit()`  fits a model to the whole training data and evaluates it on the test set. 
 # - provide the workflow object of the best model as well as the data split object (not the training data). 
  
-last_fit_xgb <- last_fit(xgb_wflow, 
+last_fit_rf <- last_fit(rf_wflow, 
                         split = data_split,
                         metrics = metric_set(
                           accuracy, f_meas, kap, precision,
                           recall, roc_auc, sens, spec))
 
-last_fit_xgb %>% collect_metrics(summarize = TRUE)
+last_fit_rf %>% collect_metrics(summarize = TRUE)
 
 #Compare to training
-xgb_res %>% collect_metrics(summarize = TRUE)
+rf_res %>% collect_metrics(summarize = TRUE)
 ```
 
 ```{r}
@@ -779,7 +781,7 @@ xgb_res %>% collect_metrics(summarize = TRUE)
 
 library(vip)
 
-last_fit_xgb %>% 
+last_fit_rf %>% 
   pluck(".workflow", 1) %>%   
   pull_workflow_fit() %>% 
   vip(num_features = 10) +
@@ -791,9 +793,9 @@ last_fit_xgb %>%
 
 ## Final Confusion Matrix
 
-last_fit_xgb %>%
+last_fit_rf %>%
   collect_predictions() %>% 
-  conf_mat(price_category, .pred_class) %>% 
+  conf_mat(test, .pred_class) %>% 
   autoplot(type = "heatmap")
 
 ```
@@ -801,9 +803,9 @@ last_fit_xgb %>%
 ```{r}
 
 ## Final ROC curve
-last_fit_xgb %>% 
+last_fit_rf %>% 
   collect_predictions() %>% 
-  roc_curve(price_category, .pred_above) %>% 
+  roc_curve(test, .pred_Fail) %>% 
   autoplot()
 
 ```
